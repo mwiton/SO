@@ -25,8 +25,7 @@ int main(int argc, char **argv){
                 svalue = 1;
                 sstr = optarg;
                 break;
-            default:
-                printf("Brak takiej opcji\n");
+			default:
                 return -1;
 		}
 	}
