@@ -71,7 +71,7 @@ int main(int argc, char **argv){
                 print_rlim_t((*funcT)());
                 break;
             case 'u':
-                printf("Maximum size of core file:\t");
+                printf("Maximum number of processes:\t");
                 print_rlim_t((*funcU)());
                 break;
             case '?':
