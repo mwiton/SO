@@ -24,8 +24,6 @@ int main(int argc, char **argv){
                 svalue = 1;
                 sstr = optarg;
                 break;
-			default:
-                return -1;
 		}
 	}
 	while((user = getpwent()) != '\0'){
