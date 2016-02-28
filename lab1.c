@@ -15,7 +15,6 @@ int main(int argc, char **argv){
 	gid_t *groups;
 	int *ngroups;
     ngroups = malloc(sizeof(int));
-	*ngroups = 100;
 	while((ret = getopt(argc, argv, "gs:")) != -1){
 		switch(ret){
 			case 'g':
@@ -36,15 +35,14 @@ int main(int argc, char **argv){
             }
         }
 		printf("%s %s ", user->pw_name, user->pw_shell);
-		if(gvalue){
+		if(gvalue || svalue){
 			group = user->pw_gid;
-            groups = malloc(*ngroups * sizeof(gid_t));
+			*ngroups = 100;
 			getgrouplist(user->pw_name, group, groups, ngroups);
 			for(i=0; i<*ngroups; ++i) {
 				structGroup = getgrgid(groups[i]);
                 printf("%s ", structGroup->gr_name);
 			}
-            free(groups);
 		}
 	printf("\n");	
 	}
