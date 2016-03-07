@@ -8,7 +8,7 @@
 
 int main(int argc, char **argv){
 	int ret, i, gvalue = 0, svalue = 0;
-	char *sstr;
+	char *sstr, dir[20] = "/bin/";
 	gid_t group;
 	struct group *structGroup;
 	struct passwd *user;
@@ -18,32 +18,37 @@ int main(int argc, char **argv){
 	while((ret = getopt(argc, argv, "gs:")) != -1){
 		switch(ret){
 			case 'g':
-                gvalue = 1;
-                break;
+   	        	gvalue = 1;
+    	        break;
 			case 's':
-                svalue = 1;
-                sstr = optarg;
-                break;
+            	svalue = 1;
+            	sstr = optarg;
+				strcat(dir, sstr);
+            	break;
 		}
 	}
-	while((user = getpwent()) != '\0'){
-        if(svalue){
-            if(strcmp(sstr, user->pw_shell) != 0){
-                continue;
-            }
-        }
-		printf("%s %s ", user->pw_name, user->pw_shell);
+	while((user = getpwent()) != NULL){
+        	if(svalue){
+            		if(strcmp(dir, user->pw_shell) != 0){
+                		continue;
+            		}
+        	}	
+		printf("%s ", user->pw_name);
 		if(gvalue || svalue){
 			group = user->pw_gid;
 			*ngroups = 100;
-			getgrouplist(user->pw_name, group, groups, ngroups);
+			if(getgrouplist(user->pw_name, group, groups, ngroups)<0){
+				groups = malloc(*ngroups * sizeof(gid_t));
+				getgrouplist(user->pw_name, group, groups, ngroups);
+			}
 			for(i=0; i<*ngroups; ++i) {
 				structGroup = getgrgid(groups[i]);
-                printf("%s ", structGroup->gr_name);
+       			printf("%s ", structGroup->gr_name);
 			}
+			free(groups);
 		}
-	printf("\n");	
-	}
-    free(ngroups);
-	return 0;
+		printf("\n");
+   }
+   free(ngroups);
+   return 0;
 }
