@@ -32,7 +32,6 @@ int main(int argc, char **argv){
     parents = argv;
     numParents = argc;
 
-    alarm(5);
     sigemptyset(&set);
     act.sa_handler = &sigintHandler;
     act.sa_mask=set;
