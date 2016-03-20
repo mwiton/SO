@@ -7,10 +7,14 @@
 
 pid_t child1 = (pid_t )0, child2 = (pid_t )0;
 char **parents;
-int numParents;
+int numParents, sigtstp = 0;
 
 void sigintHandler(int s){
     int i;
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGTSTP);
+    sigprocmask(SIG_UNBLOCK, &set, NULL);
     if(child1 != 0) kill(child1, SIGINT);
     if(child2 != 0) kill(child2, SIGINT);
     if(child1 > 0 && child2 > 0){
@@ -21,7 +25,12 @@ void sigintHandler(int s){
         printf("%s ", parents[i]);
     }
     printf("%d\n", (int)getpid());
+    if(sigtstp) printf("Pojawil sie blokowany sygnal SIGTSTP\n");
     exit(0);
+}
+
+void sigtstpHandler(int s){
+    sigtstp = 1;
 }
 
 int main(int argc, char **argv){
@@ -37,6 +46,9 @@ int main(int argc, char **argv){
     act.sa_mask=set;
     act.sa_flags=0;
     sigaction(SIGINT, &act, NULL);
+
+    act.sa_handler = &sigtstpHandler;
+    sigaction(SIGTSTP, &act, NULL);
 
     sigemptyset(&blockedSet);
     sigaddset(&blockedSet, SIGTSTP);
