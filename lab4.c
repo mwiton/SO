@@ -7,7 +7,7 @@
 
 pid_t child1 = (pid_t )0, child2 = (pid_t )0;
 char **parents;
-int numParents, sigtstp = 0;
+int numParents;
 
 void sigintHandler(int s){
     int i;
@@ -25,12 +25,11 @@ void sigintHandler(int s){
         printf("%s ", parents[i]);
     }
     printf("%d\n", (int)getpid());
-    if(sigtstp) printf("Pojawil sie blokowany sygnal SIGTSTP\n");
     exit(0);
 }
 
 void sigtstpHandler(int s){
-    sigtstp = 1;
+    printf("Pojawil sie blokowany sygnal SIGTSTP\n");
 }
 
 int main(int argc, char **argv){
