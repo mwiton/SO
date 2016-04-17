@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
         numOfClients++;
     }
     close(sockfd);
-    return 0; /* we never get here */
+    return 0;
 }
 
 void error(char *msg){
@@ -91,6 +91,12 @@ void *readFromClient(void *arg){
         else if(memcmp("messages", message, 8) == 0){
             receiveMessages(nrSocket);
         }
+        else if(memcmp("exit", message, 4) == 0) {
+            strcpy(clientsNames[nrSocket], "\0");
+            clientsSock[nrSocket]=0;
+            close(socket);
+            pthread_exit(NULL);
+        }
         else{
             write(socket, "There is not such command", 26);
         }
@@ -103,7 +109,7 @@ void sendUsers(int socket){
     strcpy(message, "");
     for (i=0; i<numOfClients; ++i){
         strcat(message, clientsNames[i]);
-        strcat(message, "\n");
+        if(clientsNames[i][0]!='\0')strcat(message, " ");
     }
     write(socket, message, 64*64);
 }

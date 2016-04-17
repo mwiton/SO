@@ -55,13 +55,12 @@ int main(int argc, char *argv[])
         ssize_t length = getline(&input, &len, stdin);
         input[length-1]='\0';
         write(sockfd, input, len);
+        if(memcmp("exit", input, 4) == 0){
+            break;
+        }
         read(sockfd, message, 64*64);
         printf("%s\n", message);
     }
-    /*n = read(sockfd,buffer,255);
-    if (n < 0)
-        error("ERROR reading from socket");
-    printf("%s\n",buffer);*/
     close(sockfd);
     return 0;
 }
