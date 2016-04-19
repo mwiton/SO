@@ -6,13 +6,24 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <signal.h>
+
+struct Client{
+    char name[64];
+    int socket;
+    char messages[8*256];
+    int isMessage;
+};
 
 int numOfClients=0;
+struct Client clients[64];
 char clientsNames[64][64];
 int clientsSock[64];
 char messages[64][8*256];
 int isMessage[64];
 
+
+int getNumberOfProcesses(char* str, int* pids);
 void *readFromClient(void *arg);
 void sendUsers(int socket);
 void sendMessage(int nrSocket, char* message);
@@ -24,20 +35,63 @@ void error(char *msg);
 
 int main(int argc, char *argv[])
 {
-    int sockfd, newsockfd, portno, pid, ret;
+    int sockfd, newsockfd, portno=0, ret, quit=0, pidsServers[2], i;
     socklen_t clilen;
     struct sockaddr_in serv_addr, cli_addr;
     pthread_t thread;
+    pid_t pidFork;
+    char line[16];
 
-    while((ret = getopt(argc, argv, "p:")) != -1){
+    while((ret = getopt(argc, argv, "qp:")) != -1){
         switch(ret){
             case 'p':
                 portno = atoi(optarg);
+                break;
+            case 'q':
+                quit=1;
                 break;
             case '?':
                 printf("[brak obslugi parametru -%c]\n", optopt);
         }
     }
+
+    char pidof[32] = "pidof ";
+    strcat(pidof, argv[0]);
+    FILE *cmd = popen(pidof, "r");
+    fgets(line, 16, cmd);
+    int numProcesses = getNumberOfProcesses(line, pidsServers);
+    if(quit==1){
+        if(numProcesses>1){
+            for(i=0; i<numProcesses; ++i){
+                if(pidsServers[i]!=getpid()){
+                    kill(pidsServers[i], SIGINT);
+                }
+            }
+            return 0;
+        }
+        else return 0;
+    }
+    if(portno == 0){
+        printf("No number of port\n");
+        exit(1);
+    }
+    if(numProcesses > 1){
+        printf("Another instance of program is running\n");
+        exit(1);
+    }
+
+    pidFork = fork();
+    if(pidFork < 0){
+        error("Error with forking");
+    }
+    else if(pidFork > 0){
+        exit(0);
+    }
+    setsid();
+    chdir("/");
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
@@ -50,6 +104,7 @@ int main(int argc, char *argv[])
         error("ERROR on binding");
     listen(sockfd,5);
     clilen = sizeof(cli_addr);
+
     while (1) {
         newsockfd = accept(sockfd,
                            (struct sockaddr *) &cli_addr, &clilen);
@@ -70,6 +125,26 @@ int main(int argc, char *argv[])
 void error(char *msg){
     perror(msg);
     exit(1);
+}
+
+int getNumberOfProcesses(char* str, int *pids){
+    int i, num, j=0, k=0;
+    char pid[8];
+    if(strlen(str)>0)num = 1;
+    else return 0;
+    for(i=1; i<strlen(str); ++i){
+        if(str[i]==' ' || str[i]=='\n'){
+            if(str[i]==' ') ++num;
+            str[i]='\0';
+            strcpy(pid, &str[k]);
+            pids[j]=atoi(pid);
+            k=i+1;
+            ++j;
+        }
+    }
+    strcpy(pid, &str[k]);
+    pids[j]=atoi(pid);
+    return num;
 }
 
 void *readFromClient(void *arg){
