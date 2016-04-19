@@ -8,15 +8,7 @@
 #include <pthread.h>
 #include <signal.h>
 
-struct Client{
-    char name[64];
-    int socket;
-    char messages[8*256];
-    int isMessage;
-};
-
 int numOfClients=0;
-struct Client clients[64];
 char clientsNames[64][64];
 int clientsSock[64];
 char messages[64][8*256];
