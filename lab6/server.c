@@ -10,7 +10,7 @@
 
 int numOfClients=0;
 char clientsNames[64][64];
-int clientsSock[64];
+int clientsSocket[64];
 char messages[64][8*256];
 int isMessage[64];
 
@@ -102,9 +102,9 @@ int main(int argc, char *argv[])
                            (struct sockaddr *) &cli_addr, &clilen);
         if (newsockfd < 0)
             error("ERROR on accept");
-        clientsSock[numOfClients]=newsockfd;
+        clientsSocket[numOfClients]=newsockfd;
         isMessage[numOfClients] = 0;
-        ret=read(clientsSock[numOfClients], clientsNames[numOfClients], 64);
+        ret=read(clientsSocket[numOfClients], clientsNames[numOfClients], 64);
         if (ret < 0) error("ERROR reading from socket");
         int number = numOfClients;
         pthread_create(&thread, NULL, readFromClient, &number);
@@ -143,7 +143,7 @@ void *readFromClient(void *arg){
     int* nrSocketp = (int*) arg;
     int nrSocket = *nrSocketp;
     printf("%d", nrSocket);
-    int socket = clientsSock[nrSocket];
+    int socket = clientsSocket[nrSocket];
     int n;
     char message[256];
     while(1){
@@ -160,7 +160,7 @@ void *readFromClient(void *arg){
         }
         else if(memcmp("exit", message, 4) == 0) {
             strcpy(clientsNames[nrSocket], "\0");
-            clientsSock[nrSocket]=0;
+            clientsSocket[nrSocket]=0;
             close(socket);
             pthread_exit(NULL);
         }
@@ -187,7 +187,7 @@ void sendMessage(int nrSocket, char *message){
     message[space]='\0';
     int nrSocket2 = lookName(message);
     if(nrSocket2 == -1){
-        write(clientsSock[nrSocket], "This user is not connected to server", 37);
+        write(clientsSocket[nrSocket], "This user is not connected to server", 37);
         return;
     }
     strcpy(strMessage, clientsNames[nrSocket]);
@@ -201,7 +201,7 @@ void sendMessage(int nrSocket, char *message){
         strcat(messages[nrSocket2], "\n");
         strcat(messages[nrSocket2], strMessage);
     }
-    write(clientsSock[nrSocket], "Message was sent", 17);
+    write(clientsSocket[nrSocket], "Message was sent", 17);
 }
 
 int lookName(char *name){
@@ -216,8 +216,8 @@ int lookName(char *name){
 
 void receiveMessages(int nrSocket){
     if(isMessage[nrSocket] == 1){
-        write(clientsSock[nrSocket], messages[nrSocket], 8*256);
+        write(clientsSocket[nrSocket], messages[nrSocket], 8 * 256);
         isMessage[nrSocket] = 0;
     }
-    else write(clientsSock[nrSocket], "No messages", 12);
+    else write(clientsSocket[nrSocket], "No messages", 12);
 }
