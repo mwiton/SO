@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
-#define SIZE_OF_BLOCK 4096
+#define SIZE_OF_BLOCK 128
 #define FALSE 0
 #define TRUE 1
 
@@ -21,6 +21,7 @@ int main(int argv,  char **argc){
     file = open(nameOfFile, O_RDONLY);
     while(length == SIZE_OF_BLOCK && isCorrect == FALSE) {
         length = read(file, data, SIZE_OF_BLOCK);
+        data[length]='\0';
         if(length == SIZE_OF_BLOCK) {
             while (data[strlen(data) - 1] != '\n') {
                 readChr = read(file, chr, 1);
@@ -32,6 +33,7 @@ int main(int argv,  char **argc){
             chr[0] = data[i];
             strcat(word, chr);
             if(chr[0]=='\n'){
+                printf("%s", word);
                 word[strlen(word)-1]='\0';
                 cryptedPassword = crypt(word, hash);
                 if (strcmp(cryptedPassword, hash) == 0){
@@ -43,7 +45,7 @@ int main(int argv,  char **argc){
         }
     }
     close(file);
-    if(!isCorrect && strcmp(word, "")){
+    if(!isCorrect && strcmp(word, "")!=0){
         cryptedPassword = crypt(word, hash);
         if (strcmp(cryptedPassword, hash) == 0){
             isCorrect = TRUE;
