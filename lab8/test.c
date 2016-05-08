@@ -13,8 +13,6 @@ int main(int argv, char** argc)
     strcpy(password, argc[1]);
     strcat(salt, argc[2]);
 
-    /* Turn it into printable characters from ‘seedchars’. */
-    /* Read in the user’s password and encrypt it. */
     encryptedPassword = crypt(password, salt);
 
     /* Print the results. */
