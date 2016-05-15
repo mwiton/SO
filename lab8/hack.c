@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <unistd.h>
 #include <crypt.h>
@@ -9,14 +11,15 @@
 #include <time.h>
 
 #define SIZE_OF_BLOCK 4096
-#define TESTED_PASSWORDS 10000
+#define TESTED_PASSWORDS 1000
 
 #define clear() printf("\033[H\033[J")
 #define gotoxy(x, y) printf("\033[%d;%dH", x, y)
 
-int file , isCorrectPassword = 0, sizeOfFile, readBytes=0, testTime =0;
+int file , isCorrectPassword = 0, sizeOfFile, readBytes=0, testTime =0, testedPasswords=0;
 char *hash, correctWord[32];
 pthread_mutex_t fileMutex, bytesMutex;
+
 
 void printProgressPercent(){
     float percent;
@@ -27,9 +30,10 @@ void printProgressPercent(){
     fflush(stdout);
 }
 
-void comparePasswordAndHash(char *password, char *hash){
-    char* cryptedPassword;
-    cryptedPassword = crypt(password, hash);
+void comparePasswordAndHash(char *password, char *hash, struct crypt_data cryptData){
+    char* cryptedPassword, *tmp;
+    tmp = cryptedPassword;
+    cryptedPassword = crypt_r(password, hash, &cryptData);
     if (strcmp(cryptedPassword, hash) == 0){
         isCorrectPassword = 1;
         strcpy(correctWord, password);
@@ -37,10 +41,12 @@ void comparePasswordAndHash(char *password, char *hash){
 }
 
 void *threadFunction(void *arg){
-    char data[SIZE_OF_BLOCK+32], chr[2];
+    char data[SIZE_OF_BLOCK+32], chr[2], *word;
     ssize_t readChr, length=SIZE_OF_BLOCK, lengthOfData;
     int i, beginOfWord;
+    struct crypt_data cryptData;
     chr[1]='\0';
+    cryptData.initialized=0;
 
     while(length == SIZE_OF_BLOCK && isCorrectPassword == 0) {
         pthread_mutex_lock(&fileMutex);
@@ -53,30 +59,28 @@ void *threadFunction(void *arg){
                 strcat(data, chr);
             }
         }
-
         pthread_mutex_unlock(&fileMutex);
         beginOfWord = 0;
 
         lengthOfData = strlen(data);
-        for (i = 0; i < lengthOfData; ++i) {
-            if(data[i]=='\n'){
-                data[i]='\0';
-                comparePasswordAndHash(&data[beginOfWord], hash);
-                beginOfWord=i+1;
-            }
-            if(isCorrectPassword) {
+        word = strtok(data, "\n\r");
+        while(word != NULL) {
+            comparePasswordAndHash(word, hash, cryptData);
+            if(isCorrectPassword && !testTime) {
                 pthread_mutex_lock(&bytesMutex);
                 readBytes += lengthOfData;
                 printProgressPercent();
                 pthread_mutex_unlock(&bytesMutex);
                 pthread_exit(NULL);
             }
+            word = strtok(NULL, "\n\r");
+            ++testedPasswords;
+            if(testTime && testedPasswords >= TESTED_PASSWORDS) pthread_exit(NULL);
         }
         pthread_mutex_lock(&bytesMutex);
         readBytes += lengthOfData;
         printProgressPercent();
         pthread_mutex_unlock(&bytesMutex);
-        if(testTime && readBytes >= TESTED_PASSWORDS) pthread_exit(NULL);
     }
     pthread_exit(NULL);
 }
@@ -86,6 +90,7 @@ int main(int argv,  char **argc){
     int numberOfThreads, i, numberOfProcessors=(int)sysconf(_SC_NPROCESSORS_CONF);
     float *times;
     clock_t start, end;
+
 
     hash = argc[1];
     nameOfFile = argc[2];
