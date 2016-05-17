@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <sys/stat.h>
-#include <time.h>
+#include <sys/time.h>
 
 #define SIZE_OF_BLOCK 4096
 #define TESTED_PASSWORDS 1000
@@ -18,7 +18,7 @@
 
 int file , isCorrectPassword = 0, sizeOfFile, readBytes=0, testTime =0, testedPasswords=0;
 char *hash, correctWord[32];
-pthread_mutex_t fileMutex, bytesMutex;
+pthread_mutex_t fileMutex, bytesMutex, passwordMutex;
 
 
 void printProgressPercent(){
@@ -74,7 +74,9 @@ void *threadFunction(void *arg){
                 pthread_exit(NULL);
             }
             word = strtok(NULL, "\n\r");
+            pthread_mutex_lock(&passwordMutex);
             ++testedPasswords;
+            pthread_mutex_unlock(&passwordMutex);
             if(testTime && testedPasswords >= TESTED_PASSWORDS) pthread_exit(NULL);
         }
         pthread_mutex_lock(&bytesMutex);
@@ -88,16 +90,16 @@ void *threadFunction(void *arg){
 int main(int argv,  char **argc){
     char *nameOfFile;
     int numberOfThreads, i, numberOfProcessors=(int)sysconf(_SC_NPROCESSORS_CONF);
-    float *times;
-    clock_t start, end;
-
+    double *times;
+    struct timeval  start, end;
+    struct timespec ts;
 
     hash = argc[1];
     nameOfFile = argc[2];
     if(argv == 3){
-        numberOfThreads=1;
+        numberOfThreads=numberOfProcessors;
         testTime =1;
-        times = malloc(numberOfProcessors* sizeof(float));
+        times = malloc(numberOfProcessors* sizeof(double));
     }
     else numberOfThreads = atoi(argc[3]);
     if(numberOfThreads > numberOfProcessors){
@@ -105,37 +107,43 @@ int main(int argv,  char **argc){
         return -1;
     }
 
-    pthread_t threads[numberOfThreads];
+    pthread_t *threads=(pthread_t*)malloc(numberOfThreads* sizeof(pthread_t));
     pthread_attr_t threadAttr;
     pthread_attr_init(&threadAttr);
     pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
     pthread_mutex_init(&fileMutex, NULL);
     pthread_mutex_init(&bytesMutex, NULL);
+    pthread_mutex_init(&passwordMutex, NULL);
 
     struct stat fileStat;
     stat(nameOfFile, &fileStat);
     sizeOfFile = fileStat.st_size;
     file = open(nameOfFile, O_RDONLY);
-
+    if(testTime)numberOfThreads=1;
     do {
-        start = clock();
+        testedPasswords=0;
+        lseek(file, 0, 0);
+        readBytes=0;
+        gettimeofday(&start, NULL);
         for (i = 0; i < numberOfThreads; ++i) {
-            pthread_create(&threads[i], &threadAttr, threadFunction, NULL);
+            pthread_create(threads+i, &threadAttr, threadFunction, NULL);
         }
-        pthread_attr_destroy(&threadAttr);
         for (i = 0; i < numberOfThreads; ++i) {
             pthread_join(threads[i], NULL);
         }
-        end=clock();
+        gettimeofday(&end, NULL);
         if(testTime){
-            times[numberOfThreads-1]=(float)(end - start) / CLOCKS_PER_SEC;
+            times[numberOfThreads-1]=(double) (end.tv_usec - start.tv_usec) / 1000000 +
+                                     (double) (end.tv_sec - start.tv_sec);
             ++numberOfThreads;
         }
     } while(testTime && numberOfThreads <= numberOfProcessors);
 
     close(file);
+    pthread_attr_destroy(&threadAttr);
     pthread_mutex_destroy(&fileMutex);
     pthread_mutex_destroy(&bytesMutex);
+    pthread_mutex_destroy(&passwordMutex);
 
     printProgressPercent();
     if(testTime){
@@ -153,5 +161,6 @@ int main(int argv,  char **argc){
             printf("\nThe password is not guessed\n");
         }
     }
+    free(threads);
     return 0;
 }
