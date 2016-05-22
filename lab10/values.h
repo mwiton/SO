@@ -13,11 +13,19 @@
 #define MINES 50
 
 #define PLAYERS 4
-#define LENGTH_OF_DATA 4
+#define LENGTH_OF_DATA 3
 #define IS_ACTIVE 0
 #define STATE_OF_PLAYER 1
 #define MOVEMENT 2
-#define CORRECT_MOVEMENT 3
 #define LAST_ID 4*LENGTH_OF_DATA+1
+
+#define WAIT 0
+#define MOVE 1
+#define WRONG_MOVE 2
+#define WIN 3
+#define MINE 4
+#define LOSE 5
+
+const char *SEM_NAME = "Minesweeper Semaphore";
 
 #endif //SYSTEMY_OPERACYJNE_VALUES_H
