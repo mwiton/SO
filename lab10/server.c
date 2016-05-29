@@ -5,7 +5,6 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <signal.h>
-#include <stdbool.h>
 #include <semaphore.h>
 #include <fcntl.h>
 #include "values.h"

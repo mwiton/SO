@@ -1,7 +1,3 @@
-//
-// Created by mwiton on 17.05.16.
-//
-
 #ifndef SYSTEMY_OPERACYJNE_VALUES_H
 #define SYSTEMY_OPERACYJNE_VALUES_H
 
